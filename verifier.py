@@ -56,13 +56,17 @@ log_to_file       = False
 logging_file      = "/home/mario/CV_work/example.log"
 #logger            = logging.getLogger('mylog')
 if (logging_enabled is True):
-    logging.basicConfig(level=logging_num_level, filename=logging_file, format=FORMAT)
+    if (log_to_file is True):
+        logging.basicConfig(level=logging_num_level, filename=logging_file,
+                            format=FORMAT)
+    else:
+        logging.basicConfig(level=logging_num_level, format=FORMAT)
 
 #=== LOGGING ===========================================================
 def configure_logging(loggin_to_file, loglevel):
     logging_num_level = getattr(logging, loglevel.upper(), None)
     if (loggin_to_file is True):
-        logging.basicConfig(level=logging_num_level, filename=logging_file, 
+        logging.basicConfig(level=logging_num_level, filename=logging_file,
                             format=FORMAT)
     else:
         logging.basicConfig(level=logging_num_level, format=FORMAT)
@@ -195,11 +199,11 @@ def determine_rat(entry):
         tag = "g"
     elif (entry == "L" or entry == "LTE"):
         rat = "LTE"
-        rat = "l"
+        tag = "l"
     elif (entry == "MM L+L"):
         rat = "MM LL"
         tag = "mmll"
-    elif (entry == "MM LC"):
+    elif (entry == "MM L+C"):
         rat = "MM LC"
         tag = "mmlc"
     elif (entry == "MM L+G"):
@@ -316,7 +320,7 @@ def get_results_for_same_sw(task_list,
                     # radio, project and position (node_n_rus) MUST be in directory element
                     if (tdd is True):
                         # we have TDD so tdd should be there
-                        if ("tdd" not in lower):
+                        if ("tdd" not in lowered):
                             logging.debug("%s Matching rat, radio, sw, position - but its not TDD?" %(PrintFrame()))
                             continue
                     # else we do not have TDD radio or tdd tag is present so carry on...
@@ -368,6 +372,8 @@ def fetch_logs_by_sw(taks_list):
 
 
 if __name__ == "__main__":
+    logging.info("############################################")
+    logging.info("Starting the search...")
     print ""
     for elem in sys.argv:
         print elem
@@ -380,7 +386,6 @@ if __name__ == "__main__":
     fetch_logs_by_sw(msr_list)
     
     print "\n\n###############################################"
-    print "$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$"
     print "WCDMA list"
     for task in wcdma_list:
         task.process_vrec()
@@ -393,15 +398,5 @@ if __name__ == "__main__":
         task.process_vrec()
         print task
         print ""
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    logging.info("Finished searching")
