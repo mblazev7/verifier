@@ -33,8 +33,9 @@ import inspect
 import sys
 import logging
 import time
-from HTMLParser import HTMLParser
-
+#from HTMLParser import HTMLParser
+from html_parser2 import *
+from BeautifulSoup import *
 
 
 #--- CONSTANTS ---------------------------------------------------------
@@ -44,10 +45,6 @@ FORMAT    = "%(asctime)s %(levelname)s:%(message)s"
 
 
 #--- GLOBALS ---------------------------------------------------------
-
-found_pass_tested = False
-pass_tested       = ""
-
 
 loglevel          = "DEBUG"
 logging_enabled   = True
@@ -136,25 +133,24 @@ class Task():
     def process_vrec(self):
         global pass_tested
         if (self._vrec is not "No path"):
-            fin = open(self._vrec, "r")
-            parser = MyHTMLParser()
-            parser.feed(fin.read())
-            fin.close()
-            self._pass_rate = pass_tested
-            pass_tested = ""
+            print self._vrec
+            parsed_vrec = parse_html(self._vrec, self._rattag)
+            print parsed_vrec
+            
+#            try:
+#                fin = open(self._vrec, "r")
+#                parser = MyHTMLParser()
+#                parser.feed(fin.read())
+#                fin.close()
+#                self._pass_rate = pass_tested
+#                pass_tested = ""
+#            except IOError:
+#                logging.critical("Could not open file: <%s> for radio: %s, rat: %s, project: %s, position %s" 
+#                                 %(self._vrec, self._radio, self._rat, self._project, self._position))
         
         
 
 #-----------------------------------------------------------------------
-
-class MyHTMLParser(HTMLParser):
-#    def handle_starttag(self, tag, attrs):
-#        print "Encountered a start tag:", tag
-#    def handle_endtag(self, tag):
-#        print "Encountered an end tag :", tag
-    def handle_data(self, data):
-        #print "Encountered some data  :", data
-        parsing(data)
 
 #-----------------------------------------------------------------------
 
@@ -169,18 +165,6 @@ def PrintFrame():
     return "File:" + str(info.filename) + " line:" + str(info.lineno) + \
            " function: " + str(info.function)
 
-
-def parsing(data):
-    global found_pass_tested, pass_tested
-    if (found_pass_tested is False):
-        if (("Pass" in data) and ("Tested" in data)):
-            found_pass_tested = True
-        else:
-            return
-    else:
-        if ("/" in str(data)):
-            pass_tested = "Passed / Tested:\n" + str(data)
-            found_pass_tested = False
 
 
 def determine_rat(entry):
@@ -359,6 +343,9 @@ def fetch_logs_by_sw(taks_list):
         idx = 0
         curr_sw = taks_list[idx].get_software()
         temp_last = 0
+        # determine which entries have same SW revision
+        # and get results only for those that do in one take
+        # this is so we can reduce the number of reads
         while (idx < (idx_last - 1)):
             if (curr_sw == taks_list[idx + 1].get_software()):
                 temp_last = idx + 1
