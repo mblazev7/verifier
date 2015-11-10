@@ -50,6 +50,9 @@ class MyVRecEntry():
         self._untested    = []
         self._radio       = ""
         self._serial      = ""
+        self._krc         = ""
+        self._revision    = ""
+        self._prod_date   = ""
     
     def __str__(self):
         return ("Description:" + str(self._description) + "\nPass rate:" + str(self._pass_rate) + 
@@ -72,17 +75,77 @@ class MyVRecEntry():
         
     def get_description(self):
         return self._description
+        
+    def set_radio(self, radio):
+        self._radio = radio
+        
+    def get_radio(self):
+        return self._radio
+        
+    def set_serial(self, serial):
+        self._serial = serial
+        
+    def get_serial(self):
+        return self._serial
+        
+    def set_krc(self, krc):
+        self._krc = krc
+        
+    def get_krc(self):
+        return self._krc
+        
+    def set_revision(self, revision):
+        self._revision = revision
+        
+    def get_revision(self):
+        return self._revision
+        
+    def set_date(self, date):
+        self._prod_date = date
+        
+    def get_date(self):
+        return self._prod_date
 
 
 #=== FUNCTIONS =========================================================
-    
+
+
+def get_comments(mhweb, descr):
+    """
+    Input : list of links to the mhweb
+            list of descriptions in the entry
+    Return: string with matching 
+    """
+    temp_descr = []
+    for elem in descr:
+        # eliminate empty entries
+        if (elem.string is not None):
+            temp_descr.append(elem)
+    descr = temp_descr
+    comment_str = ""
+    tr_idx = 0
+    have_trs = False
+    if (len(mhweb) == len(descr)):
+        have_trs = True
+    for entry in descr:
+        if (entry.string is not None):
+            comment_str += str(entry.string)
+            if (have_trs is True):
+                comment_str += (" " + str(mhweb[tr_idx].string) + " " +
+                                str(mhweb[tr_idx]['href']))
+                tr_idx += 1
+            comment_str += ";"
+    return known_error_str
+
 
 def parse_html(path, rat = None):
     """
     Input : Takes path to VRec and desired RAT.
-            If no RAT is specified takes the first found entry in the VRec.
+            Optional: Specified RAT
     Output: Extracts all relevant data (pass rate, list of files which failed) for specified RAT
             and returns it in a dictionary
+            If no RAT specified returns entire list of VRec's found in the file
+            If specified RAT is found returns data only for that RAT
             If no file found or no RAT found or specified RAT is not found returns None.
     """
     vrec_list = []
@@ -121,53 +184,71 @@ def parse_html(path, rat = None):
             vrec_list.append(new_vrec)
     else:
         # debug inof
-        return
-        pass
+        print "Danger, danger, danger..."
+        return None
     
     idx = 0
     rows = table.findAll("tr")
+    product_name       = ""
+    product_number     = ""
+    product_revision   = ""
+    serial_number      = ""
+    production_date    = ""
     while (idx < len(rows)):
         if ("Pass / Tested" in str(rows[idx])):
-            # idx += 1
             break
+        elif ("productName" in str(rows[idx])):
+            product_name = str(rows[idx].findAll("td")[1].string)
+        elif ("productNumber" in str(rows[idx])):
+            product_number = str(rows[idx].findAll("td")[1].string)
+        elif ("productRevision" in str(rows[idx])):
+            product_revision = str(rows[idx].findAll("td")[1].string)
+        elif ("serialNumber" in str(rows[idx])):
+            serial_number = str(rows[idx].findAll("td")[1].string)
+        elif ("productionDate" in str(rows[idx])):
+            production_date = str(rows[idx].findAll("td")[1].string)
         idx += 1
     # debug info
-    if (idx >= len(rows)):
+    stored_idx = idx
+    if (stored_idx >= len(rows)):
         print "Danger"
-        return
-    limit = 0
+        return None
     
     jdx = 1
-    col = rows[idx].findAll("td")
+    col = rows[stored_idx].findAll("td")
     for vrec in vrec_list:
         #print col[jdx].string
         vrec.set_pass_rate(col[jdx].string)
+        vrec.set_radio(product_name)
+        vrec.set_radio(product_number)
+        vrec.set_radio(product_revision)
+        vrec.set_radio(serial_number)
+        vrec.set_radio(production_date)
         jdx += 1        
     
-    idx += 1
-    for row in rows[idx:]:
+    stored_idx += 1
+    for row in rows[stored_idx:]:
         col = row.findAll("td")
         jdx = 1
         for vrec in vrec_list:
-#            print "col[jdx]"
-#            print col[jdx]
-#            print
-#            print "col[jdx].fin"
-#            print col[jdx].find("a")
-#            print
             link = col[jdx].find("a")
             if (link is None):
                 verdict = "UNTESTED"
             else:
-                verdict = col[jdx].find("a").string
+                verdict = str(col[jdx].find("a").string)
+            
             if (verdict == "FAILED"):
-                vrec.update_failed(str(col[0].string))
-                #print col[jdx].a['href']
+                mhweb = col[-1].findAll("a")
+                descr = col[-1].findAll("tt")                
+                vrec.update_failed((str(col[0].string), get_comments(mhweb, descr)))
             elif (verdict == "PASSED"):
                 pass # for now
             elif (verdict == "KNOWN ERROR"):
-                vrec.update_known((str(col[0].string), str(col[-1].string)))
-                #print col[jdx].a['href']
+                # find all links and descriptions of the TRs/errors
+                mhweb = col[-1].findAll("a")
+                descr = col[-1].findAll("tt")
+                vrec.update_known((str(col[0].string), get_comments(mhweb, descr)))
+
             elif (verdict == "UNTESTED"):
                 vrec.update_untested(str(col[0].string))
             else:
@@ -175,9 +256,6 @@ def parse_html(path, rat = None):
             
             jdx += 1
 
-        #limit += 1
-        if (limit > 2):
-            break
         
         
     # determine rat
@@ -201,8 +279,18 @@ def parse_html(path, rat = None):
 
 
 if (__name__ == "__main__"):
-    lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/VRec__app_R61BL__CV_RUS01B2_2-RUL-Maxwell1_rus3a_M16B__rul.html")
-    #lista = parse_html("/home/mario/CV_work/examples/TerassVR2.html", "rug")
+    print "\nStarting...\n"
+#    rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/"
+#    for element in os.listdir(rootdir):
+#        sw_path = os.path.join(rootdir, element)
+#        if (os.path.isfile(sw_path)):
+#            if (("VRec__app_R61BL__CV_" in element) and (".html" in element)):
+#                lista = parse_html(sw_path)
+#                for elem in lista:
+#                    print elem
+                
+    #lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/VRec__app_R61BL__CV_RUS01B2_2-RUL-Maxwell1_rus3a_M16B__rul.html")
+    lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/Vrec__app_R61BL__CV_RRUS0YB8-RUL-Faraday2_rus3a_M16B__rul_kopija.html")
     print "×××××××××××××××××××××××××××××××××××"
     for element in lista:
         print element
