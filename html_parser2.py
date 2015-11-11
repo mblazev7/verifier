@@ -237,7 +237,7 @@ def parse_html(path, rat = None):
             else:
                 verdict = str(col[jdx].find("a").string)
             
-            if (verdict == "FAILED"):
+            if ((verdict == "FAILED") or (verdict == "SYNTAX ERROR") or (verdict == "ABORTED")):
                 mhweb = col[-1].findAll("a")
                 descr = col[-1].findAll("tt")                
                 vrec.update_failed((str(col[0].string), get_comments(mhweb, descr)))
