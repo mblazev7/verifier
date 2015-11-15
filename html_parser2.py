@@ -27,6 +27,7 @@ __author__  = 'Mario Blazevic'
 # --- IMPORTS ----------------------------------------------------------
 from BeautifulSoup import *
 import os
+import sys
 #-----------------------------------------------------------------------
 
 
@@ -43,7 +44,7 @@ class MyVRecEntry():
     A class that represents single RAT in VRec - that is single column
     """
     def __init__ (self):
-        self._description = ""
+        self._position = ""
         self._pass_rate   = ""
         self._failed_list = []
         self._known_list  = []
@@ -55,13 +56,14 @@ class MyVRecEntry():
         self._prod_date   = ""
     
     def __str__(self):
-        return ("Description:" + str(self._description) + "\nPass rate:" + str(self._pass_rate) + 
-                "\nFailed:\n" + repr(self._failed_list) + "\nKnown issues:\n" + repr(self._known_list))
+        return ("Radio: " + str(self._radio) + "\n" +
+                "Position: " + str(self._description) + "\nPass rate: " + str(self._pass_rate) + 
+                "\nFailed:\n" + self._nice_failed() + "\nKnown issues:\n" + self._nice_known())
         
     def set_pass_rate(self, pass_rate):
         self._pass_rate = str(pass_rate)
         
-    def set_description(self, description):
+    def set_position(self, description):
         self._description = description
         
     def update_failed(self, test):
@@ -73,7 +75,7 @@ class MyVRecEntry():
     def update_untested(self, test):
         self._untested.append(test)
         
-    def get_description(self):
+    def get_position(self):
         return self._description
         
     def set_radio(self, radio):
@@ -105,6 +107,21 @@ class MyVRecEntry():
         
     def get_date(self):
         return self._prod_date
+        
+    def _nice_known(self):
+        printout = ""
+        for failed in self._known_list:
+            printout += str(failed[0]) + " - " + str(failed[1]) + "\n"
+        return printout
+        
+    def _nice_failed(self):
+        printout = ""
+        for failed in self._failed_list:
+            printout += str(failed[0])
+            if (len(str(failed[1] >= 2))):
+                printout += " - " + str(failed[1])
+            printout += "\n"
+        return printout
 
 
 #=== FUNCTIONS =========================================================
@@ -135,7 +152,7 @@ def get_comments(mhweb, descr):
                                 str(mhweb[tr_idx]['href']))
                 tr_idx += 1
             comment_str += ";"
-    return known_error_str
+    return comment_str
 
 
 def parse_html(path, rat = None):
@@ -180,7 +197,7 @@ def parse_html(path, rat = None):
         vrec_no = len(header) - 2
         for idx in range(vrec_no):
             new_vrec = MyVRecEntry()
-            new_vrec.set_description(header[1 + idx].string)
+            new_vrec.set_position(header[1 + idx].string)
             vrec_list.append(new_vrec)
     else:
         # debug inof
@@ -220,10 +237,10 @@ def parse_html(path, rat = None):
         #print col[jdx].string
         vrec.set_pass_rate(col[jdx].string)
         vrec.set_radio(product_name)
-        vrec.set_radio(product_number)
-        vrec.set_radio(product_revision)
-        vrec.set_radio(serial_number)
-        vrec.set_radio(production_date)
+        vrec.set_krc(product_number)
+        vrec.set_revision(product_revision)
+        vrec.set_serial(serial_number)
+        vrec.set_date(production_date)
         jdx += 1        
     
     stored_idx += 1
@@ -264,9 +281,9 @@ def parse_html(path, rat = None):
         vrec_idx = -1
         idx = 0
         for vrec in vrec_list:
-            if (rat in vrec.get_description()):
+            if (rat in vrec.get_position()):
                 vrec_indx = idx
-            if ((rat in vrec.get_description()) and ("air" in vrec.get_description())):
+            if ((rat in vrec.get_position()) and ("air" in vrec.get_position())):
                 vrec_idx = idx
             idx += 1
         if (vrec_idx != -1):
@@ -279,18 +296,40 @@ def parse_html(path, rat = None):
 
 
 if (__name__ == "__main__"):
+    
+    release = ""
+    tower   = ""
+    if (len(sys.argv) <= 1):
+        print ("Must provide at least SW release")
+        sys.exit(2)
+    else:
+        release = (str(sys.argv[1])).upper()
+        if ("R6" not in release):
+            print ("Bad SW release")
+            sys.exit(2)
+        if (len(sys.argv) > 2):
+            tower = sys.argv[2]
+        
+    rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_" + release + "__WORK"
+    
     print "\nStarting...\n"
-#    rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/"
-#    for element in os.listdir(rootdir):
-#        sw_path = os.path.join(rootdir, element)
-#        if (os.path.isfile(sw_path)):
-#            if (("VRec__app_R61BL__CV_" in element) and (".html" in element)):
-#                lista = parse_html(sw_path)
-#                for elem in lista:
-#                    print elem
+    #rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/"
+    for element in os.listdir(rootdir):
+        sw_path = os.path.join(rootdir, element)
+        if (os.path.isfile(sw_path)):
+            if (("VRec__app_R61BL__CV_" in element) and (".html" in element)):
+                if (tower != ""):
+                    if (tower not in element):
+                        continue
+                lista = parse_html(sw_path)
+                for elem in lista:
+                    print "___________________________________"
+                    print elem
+                    print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    print
                 
     #lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/VRec__app_R61BL__CV_RUS01B2_2-RUL-Maxwell1_rus3a_M16B__rul.html")
-    lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/Vrec__app_R61BL__CV_RRUS0YB8-RUL-Faraday2_rus3a_M16B__rul_kopija.html")
-    print "×××××××××××××××××××××××××××××××××××"
-    for element in lista:
-        print element
+#    lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/Vrec__app_R61BL__CV_RRUS0YB8-RUL-Faraday2_rus3a_M16B__rul_kopija.html")
+#    print "×××××××××××××××××××××××××××××××××××"
+#    for element in lista:
+#        print element
