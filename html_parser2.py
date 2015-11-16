@@ -295,10 +295,52 @@ def parse_html(path, rat = None):
         return vrec_list
 
 
+
+def determine_rat(entry):
+    """
+    Determine which RAT was passed. Defaults to LTE-TDD if something
+    unrecognized is passed to this function
+    """
+    if (entry == "W" or entry == "WCDMA"):
+        rat = "WCDMA"
+        tag = "ruw"
+    elif (entry == "C" or entry == "CDMA"):
+        rat = "CDMA"
+        tag = "ruc"
+    elif (entry == "G" or entry == "GSM"):
+        rat = "GSM"
+        tag = "rug"
+    elif (entry == "L" or entry == "LTE"):
+        rat = "LTE"
+        tag = "rul"
+    elif ((entry == "MML+L") or (entry == "MMLL")):
+        rat = "MM LL"
+        tag = "mmll"
+    elif ((entry == "MML+C") or (entry == "MMLC")):
+        rat = "MM LC"
+        tag = "mmlc"
+    elif ((entry == "MML+G") or (entry == "MMLG")):
+        rat = "MM LG"
+        tag = "mmlg"
+    elif ((entry == "MML+W") or (entry == "MMLW")):
+        rat = "MM LW"
+        tag = "mmlw"
+    elif ((entry == "MMW+G") or (entry == "MMW+G")):
+        rat = "MM WG"
+        tag = "mmwg"
+    else:
+        # assume LTE-TDD
+        rat = "LTE-TDD"
+        tag = "tdd"
+    return (rat, tag)
+
 if (__name__ == "__main__"):
     
-    release = ""
-    tower   = ""
+    release = None
+    tower   = None
+    rat     = None
+    project = None
+    tag     = None
     if (len(sys.argv) <= 1):
         print ("Must provide at least SW release")
         sys.exit(2)
@@ -307,23 +349,36 @@ if (__name__ == "__main__"):
         if ("R6" not in release):
             print ("Bad SW release")
             sys.exit(2)
-        if (len(sys.argv) > 2):
+        if (len(sys.argv) >= 3):
             tower = sys.argv[2]
+            if (len(sys.argv) >= 4):
+                entry = str(sys.argv[3]).upper()
+                rat, tag = determine_rat(entry.strip())
+                if (len(sys.argv) >= 5):
+                    project = sys.argv[4]
         
     rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_" + release + "__WORK"
     
     print "\nStarting...\n"
+    print release, tower, 
     #rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/"
     for element in os.listdir(rootdir):
         sw_path = os.path.join(rootdir, element)
         if (os.path.isfile(sw_path)):
             if (("VRec__app_R61BL__CV_" in element) and (".html" in element)):
-                if (tower != ""):
+                if (tower is not None):
                     if (tower not in element):
                         continue
                 lista = parse_html(sw_path)
                 for elem in lista:
+                    if (rat is not None):
+                        if (tag not in elem.get_position()):
+                            continue
                     print "___________________________________"
+                    if (rat is not None):
+                        print "RAT:", rat
+                    if (project is not None):
+                        print "Project:", project
                     print elem
                     print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                     print
