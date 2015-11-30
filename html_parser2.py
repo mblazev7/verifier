@@ -201,7 +201,7 @@ def parse_html(path, rat = None):
             vrec_list.append(new_vrec)
     else:
         # debug inof
-        print "Danger, danger, danger..."
+        print ("Danger, danger, danger...")
         return None
     
     idx = 0
@@ -228,7 +228,7 @@ def parse_html(path, rat = None):
     # debug info
     stored_idx = idx
     if (stored_idx >= len(rows)):
-        print "Danger"
+        print ("Danger")
         return None
     
     jdx = 1
@@ -269,7 +269,7 @@ def parse_html(path, rat = None):
             elif (verdict == "UNTESTED"):
                 vrec.update_untested(str(col[0].string))
             else:
-                print "Unknown testcase verdict:", verdict
+                print ("Unknown testcase verdict:", verdict)
             
             jdx += 1
 
@@ -289,7 +289,7 @@ def parse_html(path, rat = None):
         if (vrec_idx != -1):
             return vrec_list[vrec_idx]
         else:
-            print "Could not find this rat", rat
+            print ("Could not find this rat", rat)
             
     else:
         return vrec_list
@@ -359,8 +359,8 @@ if (__name__ == "__main__"):
         
     rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_" + release + "__WORK"
     
-    print "\nStarting...\n"
-    print release, tower, 
+    print ("\nStarting...\n")
+    #print release, tower, 
     #rootdir = "/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/"
     for element in os.listdir(rootdir):
         sw_path = os.path.join(rootdir, element)
@@ -374,14 +374,14 @@ if (__name__ == "__main__"):
                     if (rat is not None):
                         if (tag not in elem.get_position()):
                             continue
-                    print "___________________________________"
+                    print ("___________________________________")
                     if (rat is not None):
-                        print "RAT:", rat
+                        print ("RAT:", rat)
                     if (project is not None):
-                        print "Project:", project
-                    print elem
-                    print "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    print
+                        print ("Project:", project)
+                    print (elem)
+                    print ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+                    #print
                 
     #lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/VRec__app_R61BL__CV_RUS01B2_2-RUL-Maxwell1_rus3a_M16B__rul.html")
 #    lista = parse_html("/home/mario/CV_work/examples/test_results_verifier/test1/MSR/app_R61BL__WORK/Vrec__app_R61BL__CV_RRUS0YB8-RUL-Faraday2_rus3a_M16B__rul_kopija.html")
